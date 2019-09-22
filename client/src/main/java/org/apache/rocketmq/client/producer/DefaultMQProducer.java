@@ -800,18 +800,47 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
     }
 
+    /**
+     * 同步发送消息，具体发送到主题中的哪个消息队列由负载均衡算法决定
+     * @param msgs
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     @Override
     public SendResult send(
         Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(batch(msgs));
     }
 
+    /***
+     *  同步发送消息，具体发送到主题中的哪个消息队列由负载均衡算法决定,如果发送超时则抛出异常
+     * @param msgs
+     * @param timeout
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     @Override
     public SendResult send(Collection<Message> msgs,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         return this.defaultMQProducerImpl.send(batch(msgs), timeout);
     }
 
+    /***
+     * 同步发送消息，发送到指定的消息队列
+     * @param msgs
+     * @param messageQueue
+     * @return
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws MQBrokerException
+     * @throws InterruptedException
+     */
     @Override
     public SendResult send(Collection<Message> msgs,
         MessageQueue messageQueue) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {

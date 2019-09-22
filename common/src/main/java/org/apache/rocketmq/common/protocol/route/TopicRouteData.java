@@ -25,10 +25,26 @@ import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+/**
+ * RocketMQ路由发现是非实时的，当Topic路由出现变化后，NameServer 不主动推送给客户端，而是由客户端定时拉取主题最新的路由。
+ * 根据主题名称拉取路由信息的命令编码为: GET ROUTEINTO_BY_TOPIC。
+ */
 public class TopicRouteData extends RemotingSerializable {
+    /**
+     * 顺序消息p配置内容，来自于kvConf
+     */
     private String orderTopicConf;
+    /**
+     * topic队列yu元数据
+     */
     private List<QueueData> queueDatas;
+    /**
+     * topicf分布的broker元数据
+     */
     private List<BrokerData> brokerDatas;
+    /**
+     * broker上过服务器地址列表
+     */
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public TopicRouteData cloneTopicRouteData() {

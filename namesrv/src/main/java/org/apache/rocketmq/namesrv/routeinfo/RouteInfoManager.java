@@ -451,6 +451,18 @@ public class RouteInfoManager {
         return null;
     }
 
+    /**
+     * 由于不管是何种方式触发的路由删除，路由删除的方法都是一样的，就是从topic-
+     QueueTable、brokerAddrTable 、brokerLive Table、filterServerTable 删除与该Broker相关的
+     信息，但RocketMQ这两种方式维护路由信息时会抽取公共代码，本文将以第一种方式展
+     开分析。
+
+     我们应该不会忘记scanNotActiveBroker在NameServer中每10s执行一.次。逻辑也很
+     简单，遍历brokerLiveInfo路由表(HashMap),检测BrokerLiveInfo的lastUpdate' Timestamp
+     上次收到心跳包的时间如果超过当前时间120s,NameServer则认为该Broker已不可用，
+     故需要将它移除，关闭Channel,然后删除与该Broker相关的路由信息，路由表维护过程,
+     需要申请写锁。
+     */
     public void scanNotActiveBroker() {
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
         while (it.hasNext()) {

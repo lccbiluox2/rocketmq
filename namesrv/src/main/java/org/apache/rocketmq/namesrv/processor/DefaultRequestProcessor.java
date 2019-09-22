@@ -57,6 +57,11 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
+/**
+ * org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor网络处理器解析请求类
+ 型，如果请求类型为RequestCode.REGISTER_ BROKER,则请求最终转发到RouteInfoMan
+ ager#registerBroker。
+ */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
     private static InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
