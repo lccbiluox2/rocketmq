@@ -38,7 +38,11 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 
-
+/**
+ * NameServer主要作用是为消息生产者和消息消费者提供关于主题Topic的路由信息,
+ 那么NameServer需要存储路由的基础信息，还要能够管理Broker节点，包括路由注册、
+ 路由删除等功能。
+ */
 public class NamesrvController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
@@ -73,6 +77,15 @@ public class NamesrvController {
         this.configuration.setStorePathFromConfig(this.namesrvConfig, "configStorePath");
     }
 
+    /**
+     * 加栽KV配畳，創建NettyServer网狢処理対象，然后幵后丙个定吋任各，在RocketMQ
+     中此獎定肘任努銃称カ心跳檢測。
+
+     定吋任各1: NameServer毎隔10s拍描一次 Broker,移除処于不激活状杰的Broker。
+     定吋任努2: nameServer 毎隔10分狆打印一-次KV配置。
+
+     * @return
+     */
     public boolean initialize() {
 
         this.kvConfigManager.load();
