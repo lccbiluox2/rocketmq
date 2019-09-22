@@ -24,6 +24,21 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * RocketMQ基于主题订阅模式实现消息消费，消费者关心的是一个主题下的所有消
+ 息，但由于同一主题的消息不连续地存储在commitlog文件中，试想--下如果消息消费
+ 者直接从消息存储文件(commitlog)中去遍历查找订阅主题下的消息，效率将极其低下，
+ RocketMQ为了适应消息消费的检索需求，设计了消息消费队列文件(Consumequeue),该
+ 文件可以看成是Commitlog关于消息消费的“索引”文件，consumequeue 的第一级目录为
+ 消息主题，第二级目录为主题的消息队列.
+
+ 单个ConsumeQueue文件中默认包含30万个条目，单个文件的长度为30wx20字节，
+ 单个ConsumeQueue文件可以看出是一个ConsumeQueue条目的数组，其下标为Consume-
+ Queue的逻辑偏移量，消息消费进度存储的偏移量即逻辑偏移量。ConsumeQueue 即为
+ Commitlog文件的索引文件，其构建机制是当消息到达Commitlog文件后，由专门的线程
+ 产生消息转发任务，从而构建消息消费队列文件与下文提到的索引文件。
+
+ */
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -483,6 +498,15 @@ public class ConsumeQueue {
         }
     }
 
+    /***
+     * 根据startIndex获取消息消费队列条目。首先startIndex*20得到在consumequeue中的
+     物理偏移量，如果该offset小于minLogicOffset,则返回null, 说明该消息已被删除;如果
+     大于minLogicOffset,则根据偏移量定位到具体的物理文件，然后通过offset与物理文大小
+     取模获取在该文件的偏移量，从而从偏移量开始连续读取20个字节即可。
+
+     * @param startIndex
+     * @return
+     */
     public SelectMappedBufferResult getIndexBuffer(final long startIndex) {
         int mappedFileSize = this.mappedFileSize;
         long offset = startIndex * CQ_STORE_UNIT_SIZE;

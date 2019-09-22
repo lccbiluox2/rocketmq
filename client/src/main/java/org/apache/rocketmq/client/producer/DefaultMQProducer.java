@@ -81,21 +81,25 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Just for testing or demo program
+     * 生产者相应的topic
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
      * Number of queues to create per default topic.
+     * 默认的消息队列数量
      */
     private volatile int defaultTopicQueueNums = 4;
 
     /**
      * Timeout for sending messages.
+     * 发送消息的timeout
      */
     private int sendMsgTimeout = 3000;
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
+     * 消息超过多大容量需要压缩的大小
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
 
@@ -104,6 +108,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     *
+     * 消息发送失败后重发次数的上限
      */
     private int retryTimesWhenSendFailed = 2;
 
@@ -112,16 +118,20 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * </p>
      *
      * This may potentially cause message duplication which is up to application developers to resolve.
+     *
+     * 异步消息发送失败后重发次数的上限
      */
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
      * Indicate whether to retry another broker on sending failure internally.
+     * 如果发送给一个broker失败是否选择换一个broker发送
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
      * Maximum allowed message size in bytes.
+     * 最大的消息大小，4M
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
 
@@ -648,9 +658,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * use this method.
      *
      * @param key accesskey
-     * @param newTopic topic name
-     * @param queueNum topic's queue number
-     * @param topicSysFlag topic system flag
+     * @param newTopic topic name       topic名称
+     * @param queueNum topic's queue number    队列的数量
+     * @param topicSysFlag topic system flag    主题系统标签，默认为0
      * @throws MQClientException if there is any client error.
      */
     @Deprecated
@@ -666,6 +676,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param timestamp from when in milliseconds.
      * @return Consume queue offset.
      * @throws MQClientException if there is any client error.
+     *
+     * 根据时间戳从队列中查找其偏移量。
      */
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
@@ -680,6 +692,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param mq Instance of MessageQueue
      * @return maximum offset of the given consume queue.
      * @throws MQClientException if there is any client error.
+     *
+     * 查找该消息队列中的z最大的物理偏移量
      */
     @Deprecated
     @Override
@@ -695,6 +709,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param mq Instance of MessageQueue
      * @return minimum offset of the given message queue.
      * @throws MQClientException if there is any client error.
+     *
+     * 查找该消息队列中的最小的物理偏移量
      */
     @Deprecated
     @Override
@@ -728,6 +744,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @throws MQClientException if there is any client error.
      * @throws RemotingException if there is any network-tier error.
      * @throws InterruptedException if the sending thread is interrupted.
+     *
+     * 根据消息偏移量查找消息
      */
     @Deprecated
     @Override
@@ -741,11 +759,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      *
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
-     * @param topic message topic
-     * @param key message key index word
-     * @param maxNum max message number
-     * @param begin from when
-     * @param end to when
+     * @param topic message topic  消息主题
+     * @param key message key index word        消息索引字段
+     * @param maxNum max message number   本次最多读取消息条数
+     * @param begin from when           开始时间
+     * @param end to when               结束时间
      * @return QueryResult instance contains matched messages.
      * @throws MQClientException if there is any client error.
      * @throws InterruptedException if the thread is interrupted.

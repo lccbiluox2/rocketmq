@@ -41,6 +41,10 @@ import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
+ *
+ * Commitlog文件的存储目录默认为${ROCKET_ HOME }/store/commitlog,可以通过在
+ * broker配置文件中设置storePathRootDir属性来改变默认路径。commitlog 文件默认大小为
+ * 1G,可通过在broker配置文件中设置mapedFileSizeCommitLog属性来改变默认大小。
  */
 public class CommitLog {
     // Message's MAGIC CODE daa320a7
@@ -639,7 +643,9 @@ public class CommitLog {
         storeStatsService.getSinglePutMessageTopicTimesTotal(msg.getTopic()).incrementAndGet();
         storeStatsService.getSinglePutMessageTopicSizeTotal(topic).addAndGet(result.getWroteBytes());
 
+        //处理刷盘
         handleDiskFlush(result, putMessageResult, msg);
+        //处理高可用，主从同步的
         handleHA(result, putMessageResult, msg);
 
         return putMessageResult;
@@ -647,11 +653,15 @@ public class CommitLog {
 
     public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
         // Synchronization flush
+        // 同步刷盘
         if (FlushDiskType.SYNC_FLUSH == this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
+            //这个在Message实例化的时候就已经被设置为true了
             if (messageExt.isWaitStoreMsgOK()) {
+                //刷盘请求会被封装为GroupCommitRequest交给GroupCommitService进行处理
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                 service.putRequest(request);
+                //等待刷盘完成
                 boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                 if (!flushOK) {
                     log.error("do groupcommit, wait for flush failed, topic: " + messageExt.getTopic() + " tags: " + messageExt.getTags()
@@ -814,6 +824,15 @@ public class CommitLog {
         return -1;
     }
 
+    /**
+     * 获取当前Commitlog目录最小偏移量,首先获取目录下的第-一个文件，如果该文件可
+     用，则返回该文件的起始偏移量，否则返回下一个文件的起始偏移量。
+
+     根据该offset返回下一个文件的起始偏移量。首先获取-个文件的大小，减去(offset %
+     mappedFileSize)其目的是回到下一文件的起始偏移量。
+
+     * @return
+     */
     public long getMinOffset() {
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         if (mappedFile != null) {
@@ -827,6 +846,16 @@ public class CommitLog {
         return -1;
     }
 
+    /***
+     * 根据偏移量与消息长度查找消息。首先根据偏移找到所在的物理偏移量，然后用offset
+     与文件长度取余得到在文件内的偏移量,从该偏移量读取size长度的内容返回即可。如果
+     只根据消息偏移查找消息，则首先找到文件内的偏移量，然后尝试读取4个字节获取消息
+     的实际长度，最后读取指定字节即可。
+
+     * @param offset
+     * @param size
+     * @return
+     */
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);

@@ -35,15 +35,29 @@ public class MappedFileQueue {
 
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
+    /**
+     * 存储的目录
+     */
     private final String storePath;
-
+    /**
+     * 单个文件存储的大小
+     */
     private final int mappedFileSize;
-
+    /**
+     * mappedFiles集合
+     */
     private final CopyOnWriteArrayList<MappedFile> mappedFiles = new CopyOnWriteArrayList<MappedFile>();
-
+    /**
+     * 创建mappedFiles的服务类
+     */
     private final AllocateMappedFileService allocateMappedFileService;
-
+    /**
+     * 当前刷盘的指针,表示指针之前的数据全部被持久化到磁盘
+     */
     private long flushedWhere = 0;
+    /**
+     * 当前数据提交指针，内存中ByteBuffer当前的写指针大于flushedWhere
+     */
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -74,6 +88,13 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 根据消息存储时间戳来查找MappdFile。从MappedFile列表中第--个文件开始查找，
+     * 找到第一个最后一次更新时间大于待查找时间戳的文件，如果不存在，则返回最后一个
+     * MappedFile文件。
+     * @param timestamp
+     * @return
+     */
     public MappedFile getMappedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMappedFiles(0);
 
@@ -285,6 +306,10 @@ public class MappedFileQueue {
         return true;
     }
 
+    /**
+     * 获取存储文件最小偏移量，从这里也可以看出，并不是直接返回0,而是返回Mapped-File的getFileFormOffset()。
+     * @return
+     */
     public long getMinOffset() {
 
         if (!this.mappedFiles.isEmpty()) {
@@ -299,6 +324,10 @@ public class MappedFileQueue {
         return -1;
     }
 
+    /**
+     * 获取存储文件的最大偏移量。返回最后一个MappedFile文件的fileFromOffset加上MappedFile文件当前的写指针。
+     * @return
+     */
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();
         if (mappedFile != null) {
@@ -458,6 +487,14 @@ public class MappedFileQueue {
      * @param offset Offset.
      * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
      * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
+     *
+     * 根据消息偏移量offset查找MappedFile。根据offet查找MappedFile直接使用offset%-
+     * mappedFileSize是否可行?答案是否定的，由于使用了内存映射，只要存在于存储目录下的
+     * 文件，都需要对应创建内存映射文件，如果不定时将已消费的消息从存储文件中删除，会
+     * 造成极大的内存压力与资源浪费，所有RocketMQ采取定时删除存储文件的策略，也就
+     * 是说在存储文件中，第一个文件不一定是00000000000000000,因为该文件在某- - 时
+     * 刻会被删除，故根据offset定位MappedFile的算法为(int) ((offset / this.mappedFileSize) -
+     * (mappedFile.getFileFromOffset() / this.MappedFileSize))。
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
